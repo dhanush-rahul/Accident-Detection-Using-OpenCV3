@@ -14,10 +14,9 @@ from matplotlib import pyplot as plt
 from PIL import Image
 
 import cv2
-cap = cv2.VideoCapture("v71.mp4") 
-
+cap = cv2.VideoCapture('v13.mp4')
 sys.path.append("..")
-import app
+
  
 # # Object detection imports
 # Here are the imports from the object d etection module.
@@ -27,13 +26,14 @@ from utils import label_map_util
 from utils import visualization_utils as vis_util
 import tkinter as tk
 from tkinter import messagebox
-postData={}
+
+
 def vehicleOverlap(boxes,classes,scores):
-  msg = False
-  msg2 = False
-  msg3 = False
-  magThreshold = 0.3
-  angleThreshold = 10
+  # msg = False
+  # msg2 = False
+  # msg3 = False
+  # magThreshold = 0.3
+  # angleThreshold = 10
   for i, b in enumerate(boxes[0]):
     if classes[0][i] == 3 or classes[0][i] == 6 or classes[0][i] == 8:
       if scores[0][i] > 0.5:
@@ -47,21 +47,18 @@ def vehicleOverlap(boxes,classes,scores):
             print(area(ra, rb))
 #           area(ra, rb)
             if (area(ra,rb)<col_threshold) :
-
-              postData = {
-                "cameraId": 42,
-                "time": time.ctime(time.time())
-              }
-              print("Accident Detected!!")
-              print(postData)
-              messagebox.showwarning('Information Title','Accident has been detected @ ')
-              request = requests.post('http://httpbin.org/post', data=postData)
               
-              print(request.text)
-              msg = True
-              if msg:
-                return True 
-                break
+              print("Accident Detected!!")
+              return True
+  return False
+              # messagebox.showwarning('Information Title','Accident has been detected @ ')
+              # request = requests.post('http://httpbin.org/post', data=postData)
+              
+              # print(request.text)
+              # msg = True
+              # if msg:
+              #   return True 
+              #   break
   #       if msg :
   #         break
   # for i, j in enumerate(boxes[0]):
@@ -79,15 +76,11 @@ def vehicleOverlap(boxes,classes,scores):
   #       msg3 = True
   #       return msg3
 
-                                
-
 
 def load_image_into_numpy_array(image):
   (im_width, im_height) = image.size
   return np.array(image.getdata()).reshape(
       (im_height, im_width, 3)).astype(np.uint8)
-
-
 
 def area(a, b):  # returns None if rectangles don't intersect
     dx = min(a.xmax, b.xmax) - max(a.xmin, b.xmin)
@@ -96,18 +89,13 @@ def area(a, b):  # returns None if rectangles don't intersect
 #     if (dx>=0) and (dy>=0):
     return dx*dy
 
-
 def rectArea(xmax, ymax, xmin, ymin):
     x = np.abs(xmax-xmin)
     y = np.abs(ymax-ymin)
     return x*y
 
-
-
-
 def cal_magnitude(i, j, u):
   return math.sqrt((u*i)**2 + (u*j)**2)
-
 
 def angleOfIntersection(x, y):
   return np.arccos((x*y)/abs(x) * abs(y))
@@ -119,13 +107,16 @@ def grossSpeed(x, y, t, interval):
 def scaledSpeed(videoHeight, carBox, grossSpeed):
   return (  ( (videoHeight - carBox)/videoHeight) + 1  ) * grossSpeed
 
-
 def acceleration(scaledSpeed1, scaledSpeed2, time, interval):
   return (  (scaledSpeed2 - scaledSpeed1) / (time * interval)  )
 
+def main_process():
+  # response = {"cameraId": 42, "time": time.ctime(time.time())}
+  sys.path.append("..")
+  import cv2
+  from utils import label_map_util
 
-if __name__ == "__main__":
-  sys.path.append(".")
+  from utils import visualization_utils as vis_util
   MODEL_NAME = 'ssd_mobilenet_v2_coco'
   MODEL_FILE = MODEL_NAME + '.tar.gz'
 
@@ -154,14 +145,13 @@ if __name__ == "__main__":
   # # Detection
 
   # For the sake of simplicity we will use only 2 images:
-  PATH_TO_TEST_IMAGES_DIR = 'test_images'
-  TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'image{}.jpg'.format(i)) for i in range(1, 3) ]
+  PATH_TO_TEST_IMAGES_DIR = 'images/train'
+  TEST_IMAGE_PATHS = [ os.path.join(PATH_TO_TEST_IMAGES_DIR, 'image{}.JPG'.format(i)) for i in range(3314, 10845) ]
 
   # Size, in inches, of the output images.
   IMAGE_SIZE = (12, 8)
 
-
-
+  cap = cv2.VideoCapture('crash_comp.mp4') 
   with detection_graph.as_default():
     with tf.compat.v1.Session(graph=detection_graph) as sess:
       while True:
@@ -176,7 +166,6 @@ if __name__ == "__main__":
         scores = detection_graph.get_tensor_by_name('detection_scores:0')
         classes = detection_graph.get_tensor_by_name('detection_classes:0')
         num_detections = detection_graph.get_tensor_by_name('num_detections:0')
-
         (boxes, scores, classes, num_detections) = sess.run(
             [boxes, scores, classes, num_detections],
             feed_dict={image_tensor: image_np_expanded})
@@ -189,14 +178,23 @@ if __name__ == "__main__":
             category_index,
             use_normalized_coordinates=True,
             line_thickness=8)
-
         if vehicleOverlap(boxes, classes, scores):
-          print(postData)
-          cv2.destroyAllWindows()
-          break
+          response = {"cameraId": 42, "time": time.ctime(time.time())}
+          print(response)
+          # cv2.destroyAllWindows()
+          # break
 
+        # cv2.imshow('object detection', image_np)
         cv2.imshow('object detection', image_np)
 
         if cv2.waitKey(25) & 0xFF == ord('q'):
           cv2.destroyAllWindows()
+          response = {"cameraId": None, "time": None}
+          return response
           break
+  return response
+
+if __name__ == "__main__":
+  
+  response = main_process()
+  print(response) 
